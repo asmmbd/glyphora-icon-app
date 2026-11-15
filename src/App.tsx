@@ -39,7 +39,7 @@ function UiIcon({ name, size = 18 }: { name: string; size?: number }) {
   );
 }
 
-function IconGlyph({ icon, size = 32, color = 'currentColor', strokeWidth = 1.8, decorative = true }: { icon: IconRecord; size?: number; color?: string; strokeWidth?: number; decorative?: boolean }) {
+function IconGlyph({ icon, size = 24, color = 'currentColor', strokeWidth = 1.0, decorative = true }: { icon: IconRecord; size?: number; color?: string; strokeWidth?: number; decorative?: boolean }) {
   return (
     <svg
       aria-hidden={decorative ? true : undefined}
