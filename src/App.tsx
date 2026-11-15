@@ -39,7 +39,7 @@ function UiIcon({ name, size = 18 }: { name: string; size?: number }) {
   );
 }
 
-function IconGlyph({ icon, size = 24, color = 'currentColor', strokeWidth = 1.0, decorative = true }: { icon: IconRecord; size?: number; color?: string; strokeWidth?: number; decorative?: boolean }) {
+function IconGlyph({ icon, size = 32, color = 'currentColor', strokeWidth = 1.8, decorative = true }: { icon: IconRecord; size?: number; color?: string; strokeWidth?: number; decorative?: boolean }) {
   return (
     <svg
       aria-hidden={decorative ? true : undefined}
@@ -77,13 +77,13 @@ function App() {
   const [categorySearch, setCategorySearch] = useState('');
   const [selectedId, setSelectedId] = useState(ICONS[0].id);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [installModalOpen, setInstallModalOpen] = useState(false);
   const previewTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const [size, setSize] = useState(48);
+  const [size, setSize] = useState(24);
   const [color, setColor] = useState(SWATCHES[0]);
-  const [strokeWidth, setStrokeWidth] = useState(1.8);
+  const [strokeWidth, setStrokeWidth] = useState(1.0);
   const [packageManager, setPackageManager] = useState<PackageManagerId>('npm');
   const [toast, setToast] = useState('');
-  const installRef = useRef<HTMLElement | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
@@ -97,11 +97,12 @@ function App() {
   }, [theme]);
 
   useEffect(() => {
-    if (!previewOpen) return;
+    if (!previewOpen && !installModalOpen) return;
     const previousOverflow = document.body.style.overflow;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setPreviewOpen(false);
+        setInstallModalOpen(false);
         return;
       }
       if (event.key !== 'Tab') return;
@@ -128,7 +129,7 @@ function App() {
       window.removeEventListener('keydown', handleKeyDown);
       previewTriggerRef.current?.focus();
     };
-  }, [previewOpen]);
+  }, [previewOpen, installModalOpen]);
 
   const categories = useMemo(() => {
     const list = Array.from(new Set(ICONS.map((icon) => icon.category))).sort((a, b) => a.localeCompare(b));
@@ -215,14 +216,6 @@ function App() {
     setCategory(nextCategory);
   }
 
-  function scrollToInstall() {
-    const target = installRef.current;
-    if (!target) return;
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    target.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
-    window.setTimeout(() => target.focus({ preventScroll: true }), reduceMotion ? 0 : 420);
-  }
-
   return (
     <div className={`app-shell theme-${theme}`}>
       <header className="topbar">
@@ -232,7 +225,14 @@ function App() {
         </a>
         <div className="topbar-center"><span className="version-dot" /> React · Next.js · SVG</div>
         <div className="topbar-actions">
-          <span className="package-chip"><UiIcon name="package" size={15} /> v{PACKAGE_VERSION}</span>
+          <button
+            className="package-chip clickable"
+            type="button"
+            onClick={() => setInstallModalOpen(true)}
+            title="View installation guide"
+          >
+            <UiIcon name="package" size={15} /> v{PACKAGE_VERSION}
+          </button>
           <button className="theme-toggle" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} aria-label={theme === 'light' ? 'Enable dark mode' : 'Enable light mode'} title={theme === 'light' ? 'Dark mode' : 'Light mode'}>
             <UiIcon name={theme === 'light' ? 'moon' : 'sun'} size={18} />
           </button>
@@ -241,34 +241,50 @@ function App() {
 
       <div className="workspace" id="top">
         <aside className="sidebar" aria-label="Icon categories">
-          <div className="side-section-label">BROWSE</div>
-          <div className="sidebar-title-row">
-            <span className="sidebar-title">Categories</span>
-            <span className="sidebar-cat-count" title="Total categories">{categories.length - 1}</span>
+          <div className="sidebar-top">
+            <button className="sidebar-install" type="button" onClick={() => setInstallModalOpen(true)}>
+              <span className="sidebar-install-icon"><UiIcon name="package" size={16} /></span>
+              <span className="sidebar-install-copy">
+                <strong>Install pack</strong>
+                <small>npm · bun · pnpm · yarn</small>
+              </span>
+              <span className="sidebar-install-arrow"><UiIcon name="arrow" size={14} /></span>
+            </button>
           </div>
-          <div className="category-search-box">
-            <span className="category-search-icon">
-              <UiIcon name="search" size={14} />
-            </span>
-            <input
-              type="text"
-              placeholder="Search 40+ categories…"
-              value={categorySearch}
-              onChange={(e) => setCategorySearch(e.target.value)}
-              aria-label="Search categories"
-            />
-            {categorySearch && (
-              <button
-                className="category-search-clear"
-                onClick={() => setCategorySearch('')}
-                title="Clear category search"
-                type="button"
-                aria-label="Clear category search"
-              >
-                <UiIcon name="close" size={11} />
-              </button>
-            )}
+
+          <div className="side-divider" />
+
+          <div className="sidebar-categories-header">
+            <div className="side-section-label">BROWSE</div>
+            <div className="sidebar-title-row">
+              <span className="sidebar-title">Categories</span>
+              <span className="sidebar-cat-count" title="Total categories">{categories.length - 1}</span>
+            </div>
+            <div className="category-search-box">
+              <span className="category-search-icon">
+                <UiIcon name="search" size={14} />
+              </span>
+              <input
+                type="text"
+                placeholder="Search 40+ categories…"
+                value={categorySearch}
+                onChange={(e) => setCategorySearch(e.target.value)}
+                aria-label="Search categories"
+              />
+              {categorySearch && (
+                <button
+                  className="category-search-clear"
+                  onClick={() => setCategorySearch('')}
+                  title="Clear category search"
+                  type="button"
+                  aria-label="Clear category search"
+                >
+                  <UiIcon name="close" size={11} />
+                </button>
+              )}
+            </div>
           </div>
+
           <nav className="category-list">
             {displayedCategories.map((item) => (
               <button
@@ -291,20 +307,10 @@ function App() {
               </div>
             )}
           </nav>
-          <button className="sidebar-install" type="button" onClick={scrollToInstall}>
-            <span className="sidebar-install-icon"><UiIcon name="package" size={15} /></span>
-            <span className="sidebar-install-copy"><strong>Install</strong><small>npm · bun · pnpm · yarn</small></span>
-            <span className="sidebar-install-arrow"><UiIcon name="arrow" size={14} /></span>
-          </button>
-          <div className="side-divider" />
-          <div className="side-section-label">THE COLLECTION</div>
-          <div className="sidebar-note">
-            <div className="mini-mark"><UiIcon name="code" size={17} /></div>
-            <strong>Glyphora icon pack</strong>
-            <p>{ICONS.length.toLocaleString()} hand-built outline icons for React and Next.js.</p>
-            <span className="license-tag">MIT · Open source</span>
+
+          <div className="sidebar-footer">
+            <span className="live-dot" /> {ICONS.length.toLocaleString()} icons · v{PACKAGE_VERSION}
           </div>
-          <div className="sidebar-footer"><span className="live-dot" /> {ICONS.length.toLocaleString()} icons · version {PACKAGE_VERSION}</div>
         </aside>
 
         <main className="main-content">
@@ -461,53 +467,121 @@ function App() {
             )}
           </div>
 
-          <section className="install-section" id="install" ref={installRef} tabIndex={-1} aria-labelledby="install-title">
-            <div className="install-head">
-              <span className="section-kicker">INSTALL</span>
-              <h2 id="install-title">Add {PACKAGE_NAME} to your project</h2>
-              <p>Install the pack with your favourite package manager, then import any icon as a React component.</p>
-            </div>
-            <div className="install-grid">
-              <div className="install-block">
-                <div className="install-block-head">
-                  <span className="install-step"><span>1</span> Install</span>
-                  <div className="install-tabs" role="tablist" aria-label="Package manager">
-                    {PACKAGE_MANAGERS.map((manager) => (
+            {installModalOpen && (
+              <div className="preview-modal-backdrop" role="presentation" onClick={() => setInstallModalOpen(false)}>
+                <div
+                  className="inspector preview-modal install-modal"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="install-modal-title"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="modal-sheet-handle" aria-hidden="true" />
+                  <div className="inspector-heading">
+                    <div>
+                      <span className="section-kicker">GETTING STARTED</span>
+                      <h2 id="install-modal-title">Install {PACKAGE_NAME}</h2>
+                    </div>
+                    <div className="modal-heading-actions">
+                      <span className="inspector-index">v{PACKAGE_VERSION}</span>
                       <button
-                        key={manager.id}
+                        className="modal-close"
                         type="button"
-                        role="tab"
-                        id={`pm-tab-${manager.id}`}
-                        aria-selected={manager.id === packageManager}
-                        aria-controls="pm-command"
-                        className={manager.id === packageManager ? 'active' : ''}
-                        onClick={() => setPackageManager(manager.id)}
+                        onClick={() => setInstallModalOpen(false)}
+                        aria-label="Close install modal"
+                        title="Close"
+                        autoFocus
                       >
-                        {manager.label}
+                        <UiIcon name="close" size={17} />
                       </button>
-                    ))}
+                    </div>
+                  </div>
+
+                  <p className="install-modal-desc">
+                    Install the pack with your preferred package manager and import any of the {ICONS.length.toLocaleString()} outline icons directly into your React or Next.js app.
+                  </p>
+
+                  <div className="install-modal-blocks">
+                    <div className="install-block">
+                      <div className="install-block-head">
+                        <span className="install-step"><span>1</span> Install package</span>
+                        <div className="install-tabs" role="tablist" aria-label="Package manager">
+                          {PACKAGE_MANAGERS.map((manager) => (
+                            <button
+                              key={manager.id}
+                              type="button"
+                              role="tab"
+                              id={`modal-pm-tab-${manager.id}`}
+                              aria-selected={manager.id === packageManager}
+                              aria-controls="modal-pm-command"
+                              className={manager.id === packageManager ? 'active' : ''}
+                              onClick={() => setPackageManager(manager.id)}
+                            >
+                              {manager.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="install-command-row" id="modal-pm-command" role="tabpanel" aria-labelledby={`modal-pm-tab-${activePackageManager.id}`}>
+                        <span className="install-prompt" aria-hidden="true">$</span>
+                        <code>{activePackageManager.command}</code>
+                        <button
+                          className="install-copy"
+                          type="button"
+                          onClick={() => copyText(activePackageManager.command, `${activePackageManager.label} command`)}
+                          aria-label={`Copy ${activePackageManager.label} install command`}
+                        >
+                          <UiIcon name="copy" size={14} /><span>Copy</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="install-block">
+                      <div className="install-block-head">
+                        <span className="install-step"><span>2</span> Import &amp; use</span>
+                        <button
+                          className="install-copy ghost"
+                          type="button"
+                          onClick={() => copyText(USAGE_SNIPPET, 'Usage example')}
+                          aria-label="Copy usage example"
+                        >
+                          <UiIcon name="copy" size={14} /><span>Copy</span>
+                        </button>
+                      </div>
+                      <pre className="install-code"><code>{USAGE_SNIPPET}</code></pre>
+                    </div>
+
+                    <div className="install-props-hint">
+                      <div className="install-props-title">Supported Props</div>
+                      <p>
+                        Each icon accepts <code>size</code> (default <code>24</code>), <code>strokeWidth</code> (default <code>2</code>), <code>color</code> / <code>style</code>, and standard SVG attributes.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="install-modal-footer">
+                    <span className="install-modal-meta">
+                      <span className="status-dot" /> MIT Licensed · React 19+ Ready
+                    </span>
+                    <button
+                      className="install-modal-done"
+                      type="button"
+                      onClick={() => setInstallModalOpen(false)}
+                    >
+                      Got it
+                    </button>
                   </div>
                 </div>
-                <div className="install-command-row" id="pm-command" role="tabpanel" aria-labelledby={`pm-tab-${activePackageManager.id}`}>
-                  <span className="install-prompt" aria-hidden="true">$</span>
-                  <code>{activePackageManager.command}</code>
-                  <button className="install-copy" type="button" onClick={() => copyText(activePackageManager.command, `${activePackageManager.label} command`)} aria-label={`Copy ${activePackageManager.label} install command`}>
-                    <UiIcon name="copy" size={14} /><span>Copy</span>
-                  </button>
-                </div>
               </div>
-              <div className="install-block">
-                <div className="install-block-head">
-                  <span className="install-step"><span>2</span> Import &amp; use</span>
-                  <button className="install-copy ghost" type="button" onClick={() => copyText(USAGE_SNIPPET, 'Usage example')} aria-label="Copy usage example">
-                    <UiIcon name="copy" size={14} /><span>Copy</span>
-                  </button>
-                </div>
-                <pre className="install-code"><code>{USAGE_SNIPPET}</code></pre>
-              </div>
-            </div>
-          </section>
-          <footer className="page-footer"><span>A small icon collection, built with care.</span><span>MADE FOR THE DETAILS <span className="footer-star">✳</span></span></footer>
+            )}
+
+          <footer className="page-footer">
+            <span>{ICONS.length.toLocaleString()} hand-crafted outline icons for React &amp; Next.js</span>
+            <button type="button" className="footer-install-btn" onClick={() => setInstallModalOpen(true)}>
+              <UiIcon name="package" size={13} />
+              <span>Install {PACKAGE_NAME}</span>
+            </button>
+          </footer>
         </main>
       </div>
 
