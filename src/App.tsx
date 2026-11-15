@@ -5,7 +5,7 @@ import { ICONS, type IconRecord } from './icons';
 type Theme = 'light' | 'dark';
 type PackageManagerId = 'npm' | 'bun' | 'pnpm' | 'yarn';
 
-const CATEGORIES = ['All icons', 'Interface', 'Navigation', 'Development'];
+const PAGE_SIZE = 72;
 const SWATCHES = ['#7657f6', '#202026', '#f07857', '#168f83', '#3978e6'];
 const PACKAGE_NAME = packageJson.name;
 const PACKAGE_VERSION = packageJson.version;
@@ -74,7 +74,7 @@ function App() {
   });
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All icons');
-  const [tag, setTag] = useState<string | null>(null);
+  const [categorySearch, setCategorySearch] = useState('');
   const [selectedId, setSelectedId] = useState(ICONS[0].id);
   const [previewOpen, setPreviewOpen] = useState(false);
   const previewTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -84,6 +84,8 @@ function App() {
   const [packageManager, setPackageManager] = useState<PackageManagerId>('npm');
   const [toast, setToast] = useState('');
   const installRef = useRef<HTMLElement | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -128,16 +130,56 @@ function App() {
     };
   }, [previewOpen]);
 
-  const tags = useMemo(() => Array.from(new Set(ICONS.flatMap((icon) => icon.tags))).sort(), []);
+  const categories = useMemo(() => {
+    const list = Array.from(new Set(ICONS.map((icon) => icon.category))).sort((a, b) => a.localeCompare(b));
+    return ['All icons', ...list];
+  }, []);
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { 'All icons': ICONS.length };
+    for (const icon of ICONS) {
+      counts[icon.category] = (counts[icon.category] || 0) + 1;
+    }
+    return counts;
+  }, []);
+
+  const displayedCategories = useMemo(() => {
+    if (!categorySearch.trim()) return categories;
+    const q = categorySearch.toLowerCase();
+    return categories.filter((c) => c === 'All icons' || c.toLowerCase().includes(q));
+  }, [categories, categorySearch]);
+
   const filteredIcons = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return ICONS.filter((icon) => {
       const matchesCategory = category === 'All icons' || icon.category === category;
-      const matchesTag = !tag || icon.tags.includes(tag);
-      const searchable = `${icon.name} ${icon.component} ${icon.category} ${icon.description} ${icon.tags.join(' ')}`.toLowerCase();
-      return matchesCategory && matchesTag && (!normalizedQuery || searchable.includes(normalizedQuery));
+      const matchesQuery = !normalizedQuery || (icon._searchIndex ?? '').includes(normalizedQuery);
+      return matchesCategory && matchesQuery;
     });
-  }, [category, query, tag]);
+  }, [category, query]);
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [category, query]);
+
+  const visibleIcons = useMemo(() => {
+    return filteredIcons.slice(0, visibleCount);
+  }, [filteredIcons, visibleCount]);
+
+  useEffect(() => {
+    if (visibleCount >= filteredIcons.length) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, filteredIcons.length));
+        }
+      },
+      { rootMargin: '400px' }
+    );
+    const target = loadMoreRef.current;
+    if (target) observer.observe(target);
+    return () => observer.disconnect();
+  }, [visibleCount, filteredIcons.length]);
 
   const selectedIcon = filteredIcons.find((icon) => icon.id === selectedId) ?? filteredIcons[0] ?? null;
   const activePackageManager = PACKAGE_MANAGERS.find((manager) => manager.id === packageManager) ?? PACKAGE_MANAGERS[0];
@@ -171,7 +213,6 @@ function App() {
 
   function selectCategory(nextCategory: string) {
     setCategory(nextCategory);
-    setTag(null);
   }
 
   function scrollToInstall() {
@@ -201,15 +242,54 @@ function App() {
       <div className="workspace" id="top">
         <aside className="sidebar" aria-label="Icon categories">
           <div className="side-section-label">BROWSE</div>
-          <p className="sidebar-title">Categories</p>
+          <div className="sidebar-title-row">
+            <span className="sidebar-title">Categories</span>
+            <span className="sidebar-cat-count" title="Total categories">{categories.length - 1}</span>
+          </div>
+          <div className="category-search-box">
+            <span className="category-search-icon">
+              <UiIcon name="search" size={14} />
+            </span>
+            <input
+              type="text"
+              placeholder="Search 40+ categories…"
+              value={categorySearch}
+              onChange={(e) => setCategorySearch(e.target.value)}
+              aria-label="Search categories"
+            />
+            {categorySearch && (
+              <button
+                className="category-search-clear"
+                onClick={() => setCategorySearch('')}
+                title="Clear category search"
+                type="button"
+                aria-label="Clear category search"
+              >
+                <UiIcon name="close" size={11} />
+              </button>
+            )}
+          </div>
           <nav className="category-list">
-            {CATEGORIES.map((item, index) => (
-              <button className={`category-button ${category === item ? 'active' : ''}`} key={item} onClick={() => selectCategory(item)} aria-pressed={category === item}>
-                <span className={`category-symbol symbol-${index}`}>{index === 0 ? '✳' : index === 1 ? '◈' : index === 2 ? '↗' : '</>'}</span>
-                <span>{item === 'All icons' ? 'All icons' : item}</span>
-                <span className="category-count">{index === 0 ? ICONS.length : ICONS.filter((icon) => icon.category === item).length}</span>
+            {displayedCategories.map((item) => (
+              <button
+                className={`category-button ${category === item ? 'active' : ''}`}
+                key={item}
+                onClick={() => selectCategory(item)}
+                aria-pressed={category === item}
+              >
+                <span className="category-symbol">
+                  {item === 'All icons' ? '✳' : '◈'}
+                </span>
+                <span className="category-name">{item}</span>
+                <span className="category-count">{categoryCounts[item] ?? 0}</span>
               </button>
             ))}
+            {displayedCategories.length === 1 && categorySearch && (
+              <div className="category-empty-state">
+                <span>No category matching "{categorySearch}"</span>
+                <button type="button" onClick={() => setCategorySearch('')}>Clear search</button>
+              </div>
+            )}
           </nav>
           <button className="sidebar-install" type="button" onClick={scrollToInstall}>
             <span className="sidebar-install-icon"><UiIcon name="package" size={15} /></span>
@@ -221,10 +301,10 @@ function App() {
           <div className="sidebar-note">
             <div className="mini-mark"><UiIcon name="code" size={17} /></div>
             <strong>Glyphora icon pack</strong>
-            <p>{ICONS.length} hand-built outline icons for React and Next.js.</p>
+            <p>{ICONS.length.toLocaleString()} hand-built outline icons for React and Next.js.</p>
             <span className="license-tag">MIT · Open source</span>
           </div>
-          <div className="sidebar-footer"><span className="live-dot" /> {ICONS.length} icons · version {PACKAGE_VERSION}</div>
+          <div className="sidebar-footer"><span className="live-dot" /> {ICONS.length.toLocaleString()} icons · version {PACKAGE_VERSION}</div>
         </aside>
 
         <main className="main-content">
@@ -233,7 +313,7 @@ function App() {
               <span className="eyebrow"><span className="eyebrow-star">✳</span> CODE-READY ICONS</span>
               <h1 id="hero-title">Find the<br /><em>right icon</em> for your code.</h1>
               <p>Preview it, tune the details, and copy it into your project.</p>
-              <div className="hero-meta"><span className="hero-count">{ICONS.length} icons</span><span className="hero-meta-separator">/</span><span>SVG + React component</span></div>
+              <div className="hero-meta"><span className="hero-count">{ICONS.length.toLocaleString()} icons</span><span className="hero-meta-separator">/</span><span>SVG + React component</span></div>
             </div>
             <div className="hero-art" aria-hidden="true">
               <div className="hero-orbit orbit-one" />
@@ -247,37 +327,104 @@ function App() {
           </section>
 
           <section className="collection-heading" aria-label="Icon gallery heading">
-            <div><span className="section-kicker">THE LIBRARY</span><h2>All icons <span className="heading-count">({filteredIcons.length})</span></h2></div>
+            <div className="collection-heading-left">
+              <span className="section-kicker">THE LIBRARY</span>
+              <div className="heading-title-row">
+                <h2>{category} <span className="heading-count">({filteredIcons.length.toLocaleString()})</span></h2>
+                {(query || category !== 'All icons') && (
+                  <button
+                    className="active-filter-badge"
+                    onClick={() => { setQuery(''); selectCategory('All icons'); }}
+                    title="Reset to all icons"
+                    type="button"
+                  >
+                    <span>Reset filter</span>
+                    <UiIcon name="close" size={11} />
+                  </button>
+                )}
+              </div>
+            </div>
             <label className="search-box">
               <UiIcon name="search" size={17} />
-              <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search by name or tag…" aria-label="Search icons by name or tag" />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search icons…"
+                aria-label="Search icons by name or category"
+              />
+              {query && (
+                <button
+                  className="search-clear-btn"
+                  type="button"
+                  onClick={() => setQuery('')}
+                  title="Clear search"
+                  aria-label="Clear search"
+                >
+                  <UiIcon name="close" size={13} />
+                </button>
+              )}
               <kbd>/</kbd>
             </label>
           </section>
 
-          <div className="tag-row" aria-label="Filter by tag">
-            <span className="tag-label">TAGS</span>
-            {tags.map((item) => <button key={item} className={`tag-chip ${tag === item ? 'selected' : ''}`} onClick={() => setTag(tag === item ? null : item)} aria-pressed={tag === item}>{item}</button>)}
-            {(tag || query || category !== 'All icons') && <button className="clear-filters" onClick={() => { setTag(null); setQuery(''); selectCategory('All icons'); }}>Clear filters</button>}
-          </div>
-
           <div className="content-layout">
             <section className="icon-results" aria-label="Icon results">
               {filteredIcons.length > 0 ? (
-                <div className="icon-grid">
-                  {filteredIcons.map((icon, index) => (
-                    <button key={icon.id} className={`icon-card ${selectedIcon?.id === icon.id ? 'selected' : ''}`} onClick={(event) => { previewTriggerRef.current = event.currentTarget; setSelectedId(icon.id); setPreviewOpen(true); }} aria-haspopup="dialog" aria-pressed={selectedIcon?.id === icon.id}>
-                      <span className="card-topline"><span className="card-number">{String(index + 1).padStart(2, '0')}</span><span className="card-category">{icon.category}</span></span>
-                      <span className="card-icon"><IconGlyph icon={icon} size={35} color={color} strokeWidth={strokeWidth} /></span>
-                      <span className="card-title-row"><strong>{icon.name}</strong><span className="card-arrow"><UiIcon name="arrow" size={15} /></span></span>
-                      <span className="card-component">{icon.component}</span>
-                    </button>
-                  ))}
-                </div>
+                <>
+                  <div className="icon-grid">
+                    {visibleIcons.map((icon, index) => (
+                      <button
+                        key={icon.id}
+                        className={`icon-card ${selectedIcon?.id === icon.id ? 'selected' : ''}`}
+                        onClick={(event) => {
+                          previewTriggerRef.current = event.currentTarget;
+                          setSelectedId(icon.id);
+                          setPreviewOpen(true);
+                        }}
+                        aria-haspopup="dialog"
+                        aria-pressed={selectedIcon?.id === icon.id}
+                      >
+                        <span className="card-topline">
+                          <span className="card-number">{String(index + 1).padStart(2, '0')}</span>
+                          <span className="card-category">{icon.category}</span>
+                        </span>
+                        <span className="card-icon">
+                          <IconGlyph icon={icon} size={35} color={color} strokeWidth={strokeWidth} />
+                        </span>
+                        <span className="card-title-row">
+                          <strong>{icon.name}</strong>
+                          <span className="card-arrow"><UiIcon name="arrow" size={15} /></span>
+                        </span>
+                        <span className="card-component">{icon.component}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {visibleCount < filteredIcons.length && (
+                    <div ref={loadMoreRef} className="load-more-container">
+                      <button
+                        className="load-more-btn"
+                        type="button"
+                        onClick={() => setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, filteredIcons.length))}
+                      >
+                        Load more icons ({(filteredIcons.length - visibleCount).toLocaleString()} remaining)
+                      </button>
+                    </div>
+                  )}
+                </>
               ) : (
-                <div className="empty-state"><div className="empty-mark"><UiIcon name="search" size={24} /></div><h3>No icons found</h3><p>Try another name or tag.</p><button onClick={() => { setTag(null); setQuery(''); selectCategory('All icons'); }}>Show all icons</button></div>
+                <div className="empty-state">
+                  <div className="empty-mark"><UiIcon name="search" size={24} /></div>
+                  <h3>No icons found</h3>
+                  <p>Try searching another name or browse other categories.</p>
+                  <button onClick={() => { setQuery(''); selectCategory('All icons'); }}>Show all icons</button>
+                </div>
               )}
-              <div className="collection-footnote"><span>Showing {filteredIcons.length} of {ICONS.length}</span><span className="footnote-line" /><span>GLYPHORA ICON SET</span></div>
+              <div className="collection-footnote">
+                <span>Showing {visibleIcons.length.toLocaleString()} of {filteredIcons.length.toLocaleString()} (Total {ICONS.length.toLocaleString()})</span>
+                <span className="footnote-line" />
+                <span>GLYPHORA ICON SET</span>
+              </div>
             </section>
 
             {previewOpen && selectedIcon && (

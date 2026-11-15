@@ -1,6 +1,6 @@
 # Glyphora Icon Gallery
 
-A responsive, English-language gallery for the [Glyphora](https://www.npmjs.com/package/glyphora-icon) React icon pack. Browse 53 original outline icons, search by name or tag, filter by category, preview and customize size, color, and stroke weight, and copy a ready-to-paste React component tag or SVG markup with those settings applied. The page also shows how to install the pack with npm, bun, pnpm, or yarn, plus a usage example. Click any icon card to open an accessible preview modal; it is centered on larger screens and appears as a bottom sheet on mobile. Close it with the close button, Escape, or a tap outside the card.
+A responsive, English-language gallery for the [Glyphora](https://www.npmjs.com/package/glyphora-icon) React icon pack. Browse 6,870 original outline icons across 40+ categories, search by name or tag, filter by category, preview and customize size, color, and stroke weight, and copy a ready-to-paste React component tag or SVG markup with those settings applied. The page also shows how to install the pack with npm, bun, pnpm, or yarn, plus a usage example. Click any icon card to open an accessible preview modal; it is centered on larger screens and appears as a bottom sheet on mobile. Close it with the close button, Escape, or a tap outside the card.
 
 The icon records are read directly from the published `glyphora-icon` package, so the site always matches the shipped data.
 

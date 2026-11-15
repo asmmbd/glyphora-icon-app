@@ -8,10 +8,14 @@ export type IconRecord = {
   description: string;
   tags: string[];
   paths: string[];
+  _searchIndex?: string;
 };
 
 /**
  * The gallery reads the same records that ship inside the glyphora-icon package,
  * so the site and the npm package can never drift apart.
  */
-export const ICONS: IconRecord[] = icons as IconRecord[];
+export const ICONS: (IconRecord & { _searchIndex: string })[] = (icons as IconRecord[]).map((icon) => ({
+  ...icon,
+  _searchIndex: `${icon.name} ${icon.component} ${icon.category} ${icon.description} ${icon.tags.join(' ')}`.toLowerCase(),
+}));

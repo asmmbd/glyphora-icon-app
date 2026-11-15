@@ -5,7 +5,7 @@
     "": {
       "name": "icon-gallery",
       "dependencies": {
-        "glyphora-icon": "^0.1.1",
+        "glyphora-icon": "0.1.2",
         "react": "^19.1.0",
         "react-dom": "^19.1.0",
       },
@@ -213,7 +213,7 @@
 
     "gensync": ["gensync@1.0.0-beta.2", "", {}, "sha512-3hN7NaskYvMDLQY55gnW3NQ+mesEAepTqlg+VEbj7zzqEMBVNhzcGYYeqFo/TlYz6eQiFcp1HcsCZO+nGgS8zg=="],
 
-    "glyphora-icon": ["glyphora-icon@0.1.1", "", { "peerDependencies": { "react": ">=18.0.0" } }, "sha512-Cis0ScVd5rxjUIv3Nc7QUrvCcBQBNhQfH05Bgevwwp+u5sBGBi/wF91JJ8I2bBp+CrabLI2EEg/m9WuyHJ6gTA=="],
+    "glyphora-icon": ["glyphora-icon@0.1.2", "", { "peerDependencies": { "react": ">=18.0.0" } }, "sha512-lgY8UaxrK8j6tEWZBa02yZs0d5LVsh8NGu3Qwphap3XWP1B2iEmfNEZK6YD5CjOlTc7sb7KKjCgh7jojuOQEJA=="],
 
     "js-tokens": ["js-tokens@4.0.0", "", {}, "sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ=="],
 
