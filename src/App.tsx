@@ -1,10 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import packageJson from 'glyphora-icon/package.json';
 import { ICONS, type IconRecord } from './icons';
 
 type Theme = 'light' | 'dark';
+type PackageManagerId = 'npm' | 'bun' | 'pnpm' | 'yarn';
 
 const CATEGORIES = ['All icons', 'Interface', 'Navigation', 'Development'];
 const SWATCHES = ['#7657f6', '#202026', '#f07857', '#168f83', '#3978e6'];
+const PACKAGE_NAME = packageJson.name;
+const PACKAGE_VERSION = packageJson.version;
+const PACKAGE_MANAGERS: { id: PackageManagerId; label: string; command: string }[] = [
+  { id: 'npm', label: 'npm', command: `npm install ${PACKAGE_NAME}` },
+  { id: 'bun', label: 'bun', command: `bun add ${PACKAGE_NAME}` },
+  { id: 'pnpm', label: 'pnpm', command: `pnpm add ${PACKAGE_NAME}` },
+  { id: 'yarn', label: 'yarn', command: `yarn add ${PACKAGE_NAME}` }
+];
+const USAGE_SNIPPET = `import { ServerIcon } from '${PACKAGE_NAME}';\n\n<ServerIcon size={48} strokeWidth={1.8} style={{ color: '#7657f6' }} />`;
 
 const UI_PATHS: Record<string, string[]> = {
   search: ['M11 19a8 8 0 1 1 5.7-2.3L21 21', 'm16.7 16.7 4.3 4.3'],
@@ -70,7 +81,9 @@ function App() {
   const [size, setSize] = useState(48);
   const [color, setColor] = useState(SWATCHES[0]);
   const [strokeWidth, setStrokeWidth] = useState(1.8);
+  const [packageManager, setPackageManager] = useState<PackageManagerId>('npm');
   const [toast, setToast] = useState('');
+  const installRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -127,8 +140,9 @@ function App() {
   }, [category, query, tag]);
 
   const selectedIcon = filteredIcons.find((icon) => icon.id === selectedId) ?? filteredIcons[0] ?? null;
+  const activePackageManager = PACKAGE_MANAGERS.find((manager) => manager.id === packageManager) ?? PACKAGE_MANAGERS[0];
   const reactSnippet = selectedIcon
-    ? `import { ${selectedIcon.component} } from 'glyphora-icon';\n\n<${selectedIcon.component} size={${size}} strokeWidth={${strokeWidth.toFixed(1)}} style={{ color: '${color}' }} />`
+    ? `<${selectedIcon.component} size={${size}} strokeWidth={${strokeWidth.toFixed(1)}} style={{ color: '${color}' }} />`
     : '';
 
   async function copyText(text: string, label: string) {
@@ -160,16 +174,24 @@ function App() {
     setTag(null);
   }
 
+  function scrollToInstall() {
+    const target = installRef.current;
+    if (!target) return;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    target.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
+    window.setTimeout(() => target.focus({ preventScroll: true }), reduceMotion ? 0 : 420);
+  }
+
   return (
     <div className={`app-shell theme-${theme}`}>
       <header className="topbar">
-        <a className="brand" href="#top" aria-label="Go to the top of the icon library">
+        <a className="brand" href="#top" aria-label="Glyphora icon library — back to top">
           <span className="brand-mark" aria-hidden="true"><span /></span>
-          <span className="brand-copy"><strong>Icon Library</strong><small>PERSONAL COLLECTION</small></span>
+          <span className="brand-copy"><strong>Glyphora</strong><small>REACT ICON PACK</small></span>
         </a>
         <div className="topbar-center"><span className="version-dot" /> React · Next.js · SVG</div>
         <div className="topbar-actions">
-          <span className="package-chip"><UiIcon name="package" size={15} /> v0.2.0</span>
+          <span className="package-chip"><UiIcon name="package" size={15} /> v{PACKAGE_VERSION}</span>
           <button className="theme-toggle" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')} aria-label={theme === 'light' ? 'Enable dark mode' : 'Enable light mode'} title={theme === 'light' ? 'Dark mode' : 'Light mode'}>
             <UiIcon name={theme === 'light' ? 'moon' : 'sun'} size={18} />
           </button>
@@ -189,15 +211,20 @@ function App() {
               </button>
             ))}
           </nav>
+          <button className="sidebar-install" type="button" onClick={scrollToInstall}>
+            <span className="sidebar-install-icon"><UiIcon name="package" size={15} /></span>
+            <span className="sidebar-install-copy"><strong>Install</strong><small>npm · bun · pnpm · yarn</small></span>
+            <span className="sidebar-install-arrow"><UiIcon name="arrow" size={14} /></span>
+          </button>
           <div className="side-divider" />
           <div className="side-section-label">THE COLLECTION</div>
           <div className="sidebar-note">
             <div className="mini-mark"><UiIcon name="code" size={17} /></div>
-            <strong>Personal icon pack</strong>
-            <p>A hand-built collection for React and Next.js.</p>
+            <strong>Glyphora icon pack</strong>
+            <p>{ICONS.length} hand-built outline icons for React and Next.js.</p>
             <span className="license-tag">MIT · Open source</span>
           </div>
-          <div className="sidebar-footer"><span className="live-dot" /> {ICONS.length} icons · version 0.2.0</div>
+          <div className="sidebar-footer"><span className="live-dot" /> {ICONS.length} icons · version {PACKAGE_VERSION}</div>
         </aside>
 
         <main className="main-content">
@@ -250,7 +277,7 @@ function App() {
               ) : (
                 <div className="empty-state"><div className="empty-mark"><UiIcon name="search" size={24} /></div><h3>No icons found</h3><p>Try another name or tag.</p><button onClick={() => { setTag(null); setQuery(''); selectCategory('All icons'); }}>Show all icons</button></div>
               )}
-              <div className="collection-footnote"><span>Showing {filteredIcons.length} of {ICONS.length}</span><span className="footnote-line" /><span>PERSONAL ICON SET</span></div>
+              <div className="collection-footnote"><span>Showing {filteredIcons.length} of {ICONS.length}</span><span className="footnote-line" /><span>GLYPHORA ICON SET</span></div>
             </section>
 
             {previewOpen && selectedIcon && (
@@ -286,6 +313,53 @@ function App() {
               </div>
             )}
           </div>
+
+          <section className="install-section" id="install" ref={installRef} tabIndex={-1} aria-labelledby="install-title">
+            <div className="install-head">
+              <span className="section-kicker">INSTALL</span>
+              <h2 id="install-title">Add {PACKAGE_NAME} to your project</h2>
+              <p>Install the pack with your favourite package manager, then import any icon as a React component.</p>
+            </div>
+            <div className="install-grid">
+              <div className="install-block">
+                <div className="install-block-head">
+                  <span className="install-step"><span>1</span> Install</span>
+                  <div className="install-tabs" role="tablist" aria-label="Package manager">
+                    {PACKAGE_MANAGERS.map((manager) => (
+                      <button
+                        key={manager.id}
+                        type="button"
+                        role="tab"
+                        id={`pm-tab-${manager.id}`}
+                        aria-selected={manager.id === packageManager}
+                        aria-controls="pm-command"
+                        className={manager.id === packageManager ? 'active' : ''}
+                        onClick={() => setPackageManager(manager.id)}
+                      >
+                        {manager.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="install-command-row" id="pm-command" role="tabpanel" aria-labelledby={`pm-tab-${activePackageManager.id}`}>
+                  <span className="install-prompt" aria-hidden="true">$</span>
+                  <code>{activePackageManager.command}</code>
+                  <button className="install-copy" type="button" onClick={() => copyText(activePackageManager.command, `${activePackageManager.label} command`)} aria-label={`Copy ${activePackageManager.label} install command`}>
+                    <UiIcon name="copy" size={14} /><span>Copy</span>
+                  </button>
+                </div>
+              </div>
+              <div className="install-block">
+                <div className="install-block-head">
+                  <span className="install-step"><span>2</span> Import &amp; use</span>
+                  <button className="install-copy ghost" type="button" onClick={() => copyText(USAGE_SNIPPET, 'Usage example')} aria-label="Copy usage example">
+                    <UiIcon name="copy" size={14} /><span>Copy</span>
+                  </button>
+                </div>
+                <pre className="install-code"><code>{USAGE_SNIPPET}</code></pre>
+              </div>
+            </div>
+          </section>
           <footer className="page-footer"><span>A small icon collection, built with care.</span><span>MADE FOR THE DETAILS <span className="footer-star">✳</span></span></footer>
         </main>
       </div>

@@ -1,8 +1,24 @@
 # Glyphora Icon Gallery
 
-A responsive, English-language gallery for the [Glyphora](https://www.npmjs.com/package/glyphora-icon) React icon pack. Browse 53 original outline icons, search by name or tag, filter by category, preview and customize size, color, and stroke weight, and copy React or SVG markup with those settings applied. Click any icon card to open an accessible preview modal; it is centered on larger screens and appears as a bottom sheet on mobile. Close it with the close button, Escape, or a tap outside the card.
+A responsive, English-language gallery for the [Glyphora](https://www.npmjs.com/package/glyphora-icon) React icon pack. Browse 53 original outline icons, search by name or tag, filter by category, preview and customize size, color, and stroke weight, and copy a ready-to-paste React component tag or SVG markup with those settings applied. The page also shows how to install the pack with npm, bun, pnpm, or yarn, plus a usage example. Click any icon card to open an accessible preview modal; it is centered on larger screens and appears as a bottom sheet on mobile. Close it with the close button, Escape, or a tap outside the card.
 
 The icon records are read directly from the published `glyphora-icon` package, so the site always matches the shipped data.
+
+## Install the pack
+
+```bash
+npm install glyphora-icon
+# or
+bun add glyphora-icon
+```
+
+```jsx
+import { ServerIcon } from 'glyphora-icon';
+
+<ServerIcon size={48} strokeWidth={1.8} style={{ color: '#7657f6' }} />
+```
+
+Copying a React snippet from the gallery copies only the component tag (for example `<ServerIcon size={48} strokeWidth={1.8} style={{ color: '#7657f6' }} />`), not the import statement, because the component is already imported once per file.
 
 ## Development
 
