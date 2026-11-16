@@ -26,6 +26,7 @@ const UI_PATHS: Record<string, string[]> = {
   package: ['M12 3 3.5 7.5 12 12l8.5-4.5L12 3Z', 'M3.5 7.5V17L12 21l8.5-4V7.5', 'M12 12v9', 'M7.7 5.3 16 9.7'],
   close: ['M18 6 6 18', 'm6 6 12 12'],
   arrow: ['M5 12h14', 'm12 5 7 7-7 7'],
+  arrowUp: ['M12 19V5', 'm5 12 7-7 7 7'],
   check: ['m5 12 4 4L19 6'],
   sliders: ['M4 7h8', 'M16 7h4', 'm12 5 0 4', 'M4 17h4', 'M12 17h8', 'm8 15 0 4'],
   code: ['m8 8-4 4 4 4', 'm16 8 4 4-4 4', 'm14 5-4 14']
@@ -85,7 +86,10 @@ function App() {
   const [packageManager, setPackageManager] = useState<PackageManagerId>('npm');
   const [toast, setToast] = useState('');
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const searchSentinelRef = useRef<HTMLLabelElement | null>(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [stickySearch, setStickySearch] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -95,6 +99,24 @@ function App() {
       // The gallery still works when browser storage is unavailable.
     }
   }, [theme]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const sentinel = searchSentinelRef.current;
+      if (sentinel) {
+        // Show the sticky search once the inline search box has scrolled out of view.
+        setStickySearch(sentinel.getBoundingClientRect().bottom < 0);
+      }
+      setShowBackToTop(window.scrollY > 480);
+    };
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, []);
 
   useEffect(() => {
     if (!previewOpen && !installModalOpen) return;
@@ -239,6 +261,30 @@ function App() {
         </div>
       </header>
 
+      {stickySearch && (
+        <div className="sticky-search" role="search">
+          <span className="sticky-search-icon" aria-hidden="true"><UiIcon name="search" size={17} /></span>
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search icons…"
+            aria-label="Search icons by name or category"
+          />
+          {query && (
+            <button
+              className="search-clear-btn"
+              type="button"
+              onClick={() => setQuery('')}
+              title="Clear search"
+              aria-label="Clear search"
+            >
+              <UiIcon name="close" size={14} />
+            </button>
+          )}
+          <kbd>/</kbd>
+        </div>
+      )}
+
       <div className="workspace" id="top">
         <aside className="sidebar" aria-label="Icon categories">
           <div className="sidebar-top">
@@ -350,7 +396,7 @@ function App() {
                 )}
               </div>
             </div>
-            <label className="search-box">
+            <label className="search-box" ref={searchSentinelRef}>
               <UiIcon name="search" size={17} />
               <input
                 value={query}
@@ -584,6 +630,18 @@ function App() {
           </footer>
         </main>
       </div>
+
+      {showBackToTop && (
+        <button
+          className="back-to-top"
+          type="button"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          aria-label="Back to top"
+          title="Back to top"
+        >
+          <UiIcon name="arrowUp" size={19} />
+        </button>
+      )}
 
       {toast && <div className="toast" role="status" aria-live="polite"><span className="toast-check"><UiIcon name="check" size={14} /></span>{toast}</div>}
     </div>
